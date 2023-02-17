@@ -15,16 +15,16 @@ def convert_input(sig):
     data,sampling_rate,column_names=MCS.raw_import(sig)
     sig_data=pd.DataFrame()
     data_time=[]
-    name=np.split(sig,'/')[-1:]
+    name=sig.split('\\')[-1:]
     n=0
     for names in column_names:
-        sig_data.assign(names=data[n,:])
-        n += 1
+        sig_data[names]=data[n,:]
+        n+=1
     time_steps=1/sampling_rate
     for time_points in range(0,len(data[1,:]+1)):
         data_time.append(time_points*time_steps)
-    sig_data.assign(Time=data_time)# clearing of dataframe needed!!! research how to!!!!
-    burst=name.find("PTZ")
+    sig_data['Time']=data_time
+    burst=bool(name[0].find("PTZ"))
     return name,sig_data,burst
 
 def sig_const(set):
@@ -73,6 +73,28 @@ def sig_const(set):
         signals=signals.assign(Random_Burst=random_array)
     return signals
 
+def write_memristor(sig,set):
+    len_time=len(sig['Time'])
+    channel_number=0
+    column_amount=len(sig.columns)
+    while channel_number <column_amount-1:
+        channel_data=np.array(sig.iloc[:,channel_number]*1000)
+        threshold=set.threshold*1000
+        channel_data_clone=np.concatenate((channel_data[1:],[0]))
+        f_channel_data=channel_data > threshold
+        f_channel_data_clone=channel_data_clone > threshold
+        f_channel_data_clone=~f_channel_data_clone
+        sig.iloc[:, channel_number]=pd.Series(np.array([x and y for x, y in zip(f_channel_data, f_channel_data_clone)]).astype(float))
+        print('Conversion done:'+str(channel_number)+'_of_'+str(column_amount))
+        channel_number+=1
+    return sig
+
+def greater(data,data_clone):
+    if data and not(data_clone):
+        return 1
+    else:
+        return 0
+
 def read_memristor(sig,set,name):
     len_time=len(sig['Time'])
     read=pd.DataFrame(index=np.arange(0,len_time))
@@ -82,7 +104,7 @@ def read_memristor(sig,set,name):
             'verticalalignment': 'top',
             'horizontalalignment': 'center'}
     fig, axs = plt.subplots(1,(set.read_times_max+1-set.read_times_min))
-    figstep, axsstep=plt.subplots((set.read_times_max+1-set.read_times_min),1)
+    figstep, axsstep=plt.subplots(1,(set.read_times_max+1-set.read_times_min))
     for n in np.arange(set.read_times_min,set.read_times_max+1):
         min=set.read_times_min
         width = 0.04
@@ -90,6 +112,8 @@ def read_memristor(sig,set,name):
         axs[(n-min) - 2].set_xticks(x_ticks+width*n)
         axs[(n-min) - 2].set_ylabel('Counted_Spikes')
         axs[(n-min) - 2].set_xlabel('Time')
+        axsstep[(n-min) - 2].set_ylabel('Counted_Spikes')
+        axsstep[(n-min) - 2].set_xlabel('Time')
         for column_type in sig.columns[1:]:
             devision_point=math.ceil(len_time / n)
             read_times = []
@@ -104,7 +128,7 @@ def read_memristor(sig,set,name):
             read['Time_for_' + str(n)] = pd.Series(read_times)
             read[str(column_type)+'_measurment_'+str(n)]=pd.Series(read_results)
             axs[(n-min) - 2].bar(x=x_ticks+width*sig.columns.get_loc(column_type), height=read_results, width=width ,label=column_type)
-            axsstep[(n - min) - 2].step(read_results,read_times,where='post')
+            axsstep[(n - min) - 2].step(read_results,read_times,where='pre',label=column_type)
         #read_results=read.iloc[:len(read_times), ((n - 2) * (len(sig.columns[1:]) + 1)):]
         #axs[n-2].plot(read_times,read_results)
         axs[(n-min) - 2].legend()
@@ -116,7 +140,7 @@ def read_memristor(sig,set,name):
     type='_bar_'
     fig.show()
     saveplot(name,read,set,fig,type)
-    figstep.subtitle('duration_' + str(set.duration) + '_time_steps_' + str(set.time_steps) + '_read_times_' + str(
+    figstep.suptitle('duration_' + str(set.duration) + '_time_steps_' + str(set.time_steps) + '_read_times_' + str(
         set.read_times_max - set.read_times_min) + '_spacing_' + str(n), fontdict=font)
     type='_step_'
     figstep.show()
@@ -125,13 +149,13 @@ def read_memristor(sig,set,name):
 
 def saveplot(name,read,set,figure,type):
     current_filepath = os.path.dirname(os.path.realpath(__file__))
-    if set.save=='Y' or 'y':  #should be extra function
+    if set.save in 'Y' or 'y':  #should be extra function
         if not name:
             filedirectory = os.path.join(current_filepath, "Output_Data/",
                                           'duration_' + str(set.duration) + '_time_steps_' + str(set.time_steps) + '_read_times_' + str(
                                          set.read_times_max - set.read_times_min)+ type+ '.png')
         else:
-            filedirectory = os.path.join(current_filepath,name+type+'.png')
+            filedirectory = os.path.join(current_filepath,str(name)+str(type)+'.png')
         figure.savefig(filedirectory)
         filedirectory = os.path.join(filedirectory[:-3] + '.csv')
         read.to_csv(filedirectory, sep='\t', index=False)

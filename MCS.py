@@ -24,11 +24,15 @@ def raw_import(file_name):
     data = fromfile(f, dtype='uint16')
     data = data.reshape((len(channel_names),-1), order='F').astype(float)
     for i in range(len(channel_names)):
+        if channel_names[i].endswith('\\r\\'):
+            channel_names[i]=channel_names[i][:-3]
+        if channel_names[i].startswith('b'):
+            channel_names[i] = channel_names[i][2:]
         if channel_names[i].startswith('El'):
-            data[i,:]=(data[i,:]-ADC_zero)*El
+            data[i]=(data[i]-ADC_zero)*El
     f.close()
     return data, sampling_rate, channel_names
 
-file_name='I:\\BiomedMat\\1050_BMNT\\Team\\Stumpp\\MEMMEA\\Data\\Test_data\\From_Haein\\2022-11-25\\Nov3_22699_20221125_6wellorg_10p5_PTZ1.raw'
-input=raw_import(file_name)
-print('Status')
+#file_name='I:\\BiomedMat\\1050_BMNT\\Team\\Stumpp\\MEMMEA\\Data\\Test_data\\From_Haein\\2022-11-25\\Nov3_22699_20221125_6wellorg_10p5_PTZ1.raw'
+#input=raw_import(file_name)
+#print('Status')
