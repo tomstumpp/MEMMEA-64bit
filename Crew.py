@@ -3,7 +3,8 @@ import pandas as pd
 
 class generate_decider:
     def __init__(self,execute_random=True,execute_evenly=True,execute_gausian=True, execute_poison=True,duration=10,
-                 time_steps=0.1,read_times_min=2,read_times_max=10,save='Y',amount_burst=5,max_bursts=20,threshold=1):
+                 time_steps=0.1,read_times_min=2,read_times_max=10,save='Y',amount_burst=5,max_bursts=20,threshold=1,
+                 font = {'size': 12, 'weight': 4, 'color': 'black','verticalalignment': 'top','horizontalalignment': 'center'}):
         self.execute_random = execute_random  # all execution variables can be set to False independely so that the corresponding signal is not used
         self.execute_evenly = execute_evenly
         self.execute_gausian = execute_gausian
@@ -16,8 +17,10 @@ class generate_decider:
         self.amount_burst= amount_burst   #defines how many APs will be inhereted in one burst
         self.max_bursts=max_bursts
         self.threshold=threshold
+        self.font=font
 class exp_signal:
-    def __init__(self,indentifier=str(),dataarray=pd.DataFrame(),epi_burst=bool()):#dataarray needs child class for time and values
+    def __init__(self,indentifier=str(),dataarray=pd.DataFrame(),epi_burst=bool(),time_steps=float()):#dataarray needs child class for time and values
         self.indentifier=indentifier
         self.dataarray=dataarray
         self.epi_burst=epi_burst
+        self.time_steps=time_steps

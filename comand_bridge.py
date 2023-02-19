@@ -15,7 +15,8 @@ output_memristor=pd.DataFrame() #stores the read out of the memristor
 settings=Crew.generate_decider()
 user_signal=Crew.exp_signal()
 correct=False
-disable=True
+disable=False
+disable_real_data=True
 
 while correct!=True:
     #settings.amount_bursts=input('How high should be the number of APs in a Burst? '
@@ -24,8 +25,8 @@ while correct!=True:
     #settings.read_times_max = int(input(
     #    'What maximum amount of time divisions do you want?(An interval of larger than 7 is not allowed!!:'))
     #settings.threshold=float(input('Where should the threshold be placed?'))
-    settings.amount_bursts=3
-    settings.read_times_min=3
+    settings.amount_bursts=5
+    settings.read_times_min=2
     settings.read_times_max=4
 
     if int(settings.amount_bursts)<=settings.max_bursts:
@@ -42,15 +43,17 @@ while correct!=True:
 #settings.save=input('Do you want to save the data?[Y or N]:')
 if not(disable):
     raw_signal_amplitudes=eg.sig_const(settings)
-    output_memristor=eg.read_memristor(raw_signal_amplitudes,settings,())
-    print('The result of the generated signals is as followed:', output_memristor.head())
+    output_memristor=eg.read_memristor(raw_signal_amplitudes,settings,'',settings.time_steps)
+    print('Done')
 
-
-root=tk.Tk()
-#tkinter_input=fd.askopenfilename()
-tkinter_input='I:\\BiomedMat\\1050_BMNT\\Team\\Stumpp\\MEMMEA\\Data\\Test_data\\From_Haein\\2022-11-25\\Nov3_22699_20221125_6wellorg_10p5_PTZ1.raw'
-root.destroy()
-if tkinter_input:
-    user_signal.name,user_signal.dataarray,user_signal.epi_burst=eg.convert_input(tkinter_input)
-    output_memristor=eg.write_memristor(user_signal.dataarray,settings)
-    output_memristor=eg.read_memristor(user_signal.dataarray, settings, user_signal.name)
+if not(disable_real_data):
+    root=tk.Tk()
+    #tkinter_input=fd.askopenfilename()
+    tkinter_input='C:\\Users\\WichmannTim\\Documents\\GitHub\\MEMMEA\\Nov3_22699_20221125_6wellorg_10p5_PTZ1.raw'
+    root.destroy()
+    if tkinter_input:
+        user_signal.name,user_signal.dataarray,user_signal.epi_burst,user_signal.time_steps=eg.convert_input(tkinter_input)
+    #    eg.org_plot(user_signal.name,user_signal.dataarray,settings)
+    #    eg.read_memristor(user_signal.dataarray,settings,str(user_signal.name)+'_raw_',user_signal.time_steps)
+        output_memristor=eg.write_memristor(user_signal.dataarray,settings)
+        output_memristor=eg.read_memristor(output_memristor, settings, str(user_signal.name)+'_well_done_',user_signal.time_steps)
