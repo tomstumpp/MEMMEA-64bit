@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 import os
 import MCS
 
+
 np.random.seed(19680801)
 rng=np.random.default_rng(12345)
 
@@ -45,44 +46,45 @@ def sig_const(set):
     repeat_length=1
     signals=pd.DataFrame()
     signals = signals.assign(Time=np.arange(0, set.duration, set.time_steps))
-    if set.execute_random==1 or True:
-        signals=signals.assign(Random_Signal= rng.integers(2,size=length))
-    if set.execute_evenly == 1 or True:
+    if set.execute_random==True:
+        signals=signals.assign(Random_Sig= rng.integers(2,size=length))
+    if set.execute_evenly == True:
         array=[]
         for n in range(0,int(length/2)):
             array.append(1)
             for i in range(0,repeat_length):
                 array.append(0)
-        signals=signals.assign(Even_Spaced_Signal=array)
-    if set.execute_gausian==True or 1:
+        signals=signals.assign(Even_Sp_Sig=array)
+    if set.execute_gausian==True:
         n,p= length,0.5
         x=np.arange(binom.ppf(0.01,n,p),binom.ppf(0.99,n,p))
-        signals=signals.assign(Gausian_Signal= np.fft.ifft(a=binom.pmf(x, n, p),n=length).real*10**5)
-        signals=signals.assign(Gausian_Signal=signals['Gausian_Signal'].values.astype(int))
-        signals=signals.assign(Gausian_Signal =[1 if np.abs(signals['Gausian_Signal'].values[n])>=
-                                                     np.mean(signals['Gausian_Signal'].values) else 0 for n in range(0,len(signals['Gausian_Signal'].values))])
-    if set.execute_poison== True or 1:
+        signals=signals.assign(Gausian_Sig= np.fft.ifft(a=binom.pmf(x, n, p),n=length).real*10**5)
+        signals=signals.assign(Gausian_Sig=signals['Gausian_Sig'].values.astype(int))
+        signals=signals.assign(Gausian_Sig =[1 if np.abs(signals['Gausian_Sig'].values[n])>=
+                                                     np.mean(signals['Gausian_Sig'].values) else 0 for n in range(0,len(signals['Gausian_Sig'].values))])
+    if set.execute_poison== True:
         mu=0.6
         x = np.arange(poisson.ppf(0.01, mu), poisson.ppf(0.99, mu))
-        signals=signals.assign(Poisson_Signal=np.fft.ifft(a=poisson.pmf(x,mu),n=length).real*10**5)
-        signals=signals.assign(Poisson_Signal=signals['Poisson_Signal'].values.astype(int))
-        signals=signals.assign(Poisson_Signal=[1 if np.abs(signals['Poisson_Signal'].values[n])>=
-                                                    np.mean(signals['Poisson_Signal'].values) else 0 for n in range(0,len(signals['Poisson_Signal'].values))])
-    random_array=[]
-    if set.amount_burst>2:
-        zero_array=np.zeros(set.max_bursts-set.amount_burst)
-        ones_array=np.ones(set.amount_burst)
-        even_array=np.tile(np.concatenate((zero_array,ones_array)),int(length/len(zero_array/2)))
-        if len(even_array)<=length:
-            even_array=even_array.append(np.zeros(length-len(even_array)))
-        else:
-            even_array=even_array[:length]
-        while len(random_array)<length:
-            zero_array=np.zeros(np.random.randint(set.max_bursts))
-            random_array=np.concatenate((random_array,zero_array,ones_array))  #continue here...
-        random_array=random_array[:length]
-        signals=signals.assign(Even_Burst=even_array)
-        signals=signals.assign(Random_Burst=random_array)
+        signals=signals.assign(Poisson_Sig=np.fft.ifft(a=poisson.pmf(x,mu),n=length).real*10**5)
+        signals=signals.assign(Poisson_Sig=signals['Poisson_Sig'].values.astype(int))
+        signals=signals.assign(Poisson_Sig=[1 if np.abs(signals['Poisson_Sig'].values[n])>=
+                                                    np.mean(signals['Poisson_Sig'].values) else 0 for n in range(0,len(signals['Poisson_Sig'].values))])
+    if set.execute_burst==True:
+        random_array=[]
+        if set.amount_burst>2:
+            zero_array=np.zeros(set.max_bursts-set.amount_burst)
+            ones_array=np.ones(set.amount_burst)
+            even_array=np.tile(np.concatenate((zero_array,ones_array)),int(length/len(zero_array/2)))
+            if len(even_array)<=length:
+                even_array=even_array.append(np.zeros(length-len(even_array)))
+            else:
+                even_array=even_array[:length]
+            while len(random_array)<length:
+                zero_array=np.zeros(np.random.randint(set.max_bursts))
+                random_array=np.concatenate((random_array,zero_array,ones_array))  #continue here...
+            random_array=random_array[:length]
+            signals=signals.assign(Even_Burst=even_array)
+            signals=signals.assign(Random_Burst=random_array)
     return signals
 
 def write_memristor(sig,set):
@@ -104,8 +106,14 @@ def write_memristor(sig,set):
 def read_memristor(sig,set,name,time_steps):
     len_time = len(sig['Time'])
     max_t_plot=10
-    base_name= str(name)+'_syn_bursts_'+str(set.amount_bursts)+'_duration_' + str(set.duration) + '_time_steps_' + str(set.time_steps) + '_max_read_time_' + str(
-        set.read_times_max)+ '_min-read_time_' + str(set.read_times_min) + '_spacing_'
+    synthetic_plot=str(int(set.execute_evenly))+str(int(set.execute_random))+str(int(set.execute_gausian))+str(int(set.execute_poison))
+    if set.execute_burst==False:
+        base_name = str(name) + 'synth'+ synthetic_plot+'_duration_' + str(
+            set.duration) + '_t_steps_' + str(set.time_steps) + '_max_r_time_' + str(
+            set.read_times_max) + '_min-r_time_' + str(set.read_times_min) + '_t_splitting_'
+    base_name = str(name) +'synth'+ synthetic_plot+ '_syn_bursts_' + str(set.amount_bursts) + '_duration_' + str(
+        set.duration) + '_t_steps_' + str(set.time_steps) + '_max_r_time_' + str(
+        set.read_times_max) + '_min-r_time_' + str(set.read_times_min) + '_t_splitting_'
     amount_plots = math.ceil((len_time * time_steps) / max_t_plot)
     if len_time*time_steps>=max_t_plot:
         previous_index=0
@@ -114,7 +122,7 @@ def read_memristor(sig,set,name,time_steps):
                 index_t_period = len_time-1
             else:
                 index_t_period=sig.index[sig['Time']>=n*max_t_plot][0]
-            name=base_name+'_'+str(n)+'separate_plot'
+            name=base_name+'_'+str(n)+'_separate_plot'
             section_plot(sig.iloc[previous_index:index_t_period,:],set,name)
             previous_index=index_t_period+1
     else:
@@ -128,7 +136,7 @@ def section_plot(sig,set,name):
     fig, axs = plt.subplots(1,(set.read_times_max+1-set.read_times_min))
     figstep, axsstep=plt.subplots(1,(set.read_times_max+1-set.read_times_min))
     if (set.read_times_max+1-set.read_times_min)==1:
-        subplot_amount=set.read_times_min
+        subplot_amount=set.read_times_min   # only one time sepration does not work because of the for loop=> later versions an adaption should be made
     else:
         subplot_amount=np.arange(set.read_times_min,set.read_times_max+1)
     s_number=0
@@ -138,9 +146,9 @@ def section_plot(sig,set,name):
         x_ticks = np.arange(1,n+1)
         axs[s_number].set_xticks(x_ticks+width*n)
         axs[s_number].set_ylabel('Counted_Spikes')
-        axs[s_number].set_xlabel('Time')
+        axs[s_number].set_xlabel('Time[s]')
         axsstep[s_number].set_ylabel('Counted_Spikes')
-        axsstep[s_number].set_xlabel('Time')
+        axsstep[s_number].set_xlabel('Time[s]')
         read_times=[]
         devision_point = math.ceil(len_time / n)
         time_index=[]
@@ -164,24 +172,27 @@ def section_plot(sig,set,name):
         axs[s_number].set_xticklabels(np.array(read_times).round(decimals=2))
         s_number +=1
     if n==subplot_amount.max():
-        axs[s_number-1].legend()#bbox_to_anchor=(1.05, 1), loc='upper left')
-        axsstep[s_number-1].legend()#bbox_to_anchor=(1.05, 1), loc='upper left')
+        axs[s_number-1].legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=set.font['size'])
+        axsstep[s_number-1].legend(bbox_to_anchor=(1.05, 1), loc='upper left',fontsize=set.font['size'])
     name=name+str(n)
-    fig.suptitle(name, fontdict=set.font)
+    fig.suptitle(name, fontsize=set.font['size'])
     type='_bar_'
+    plt.tight_layout()
     fig.show()
+    plt.tight_layout()
     saveplot(name,read,set,fig,type)
-    figstep.suptitle(name, fontdict=set.font)
+    figstep.suptitle(name, fontsize=set.font['size'])
     type='_step_'
     figstep.show()
+    plt.tight_layout()
     saveplot(name,read,set,figstep,type)
     return read
 
 def saveplot(name,read,set,figure,type):
     current_filepath = os.path.dirname(os.path.realpath(__file__))
     if set.save in 'Y' or 'y':  #should be extra function
-        filedirectory = os.path.join(current_filepath,'Output_Data\\'+str(name)+str(type)+'.png')
-        figure.savefig(filedirectory)
+        filedirectory = os.path.join(current_filepath,'Output_Data\\Data\\'+str(name)+str(type)+'.png')
+        figure.savefig(filedirectory,dpi=1000)
         filedirectory = os.path.join(filedirectory[:-3] + '.csv')
         read.to_csv(filedirectory, sep='\t', index=False)
 

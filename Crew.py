@@ -2,13 +2,14 @@ import pandas as pd
 
 
 class generate_decider:
-    def __init__(self,execute_random=True,execute_evenly=True,execute_gausian=True, execute_poison=True,duration=10,
+    def __init__(self,execute_random=True,execute_evenly=True,execute_gausian=True, execute_poison=True,execute_burst=True,duration=10,
                  time_steps=0.1,read_times_min=2,read_times_max=10,save='Y',amount_burst=5,max_bursts=20,threshold=1,
-                 font = {'size': 12, 'weight': 4, 'color': 'black','verticalalignment': 'top','horizontalalignment': 'center'}):
+                 font = {'size': 'x-small', 'weight': 'normal', 'color': 'black','verticalalignment': 'top','horizontalalignment': 'center'}):
         self.execute_random = execute_random  # all execution variables can be set to False independely so that the corresponding signal is not used
         self.execute_evenly = execute_evenly
         self.execute_gausian = execute_gausian
         self.execute_poison = execute_poison
+        self.execute_burst = execute_burst
         self.duration = duration  # gives the time interval which can be in any unit
         self.time_steps = time_steps  # gives the resolution/sampling of the time interval and therefore determines the frequency
         self.read_times_min = read_times_min  # always needs to start at minimum 2

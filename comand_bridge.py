@@ -26,8 +26,8 @@ while correct!=True:
     #    'What maximum amount of time divisions do you want?(An interval of larger than 7 is not allowed!!:'))
     #settings.threshold=float(input('Where should the threshold be placed?'))
     settings.amount_bursts=5
-    settings.read_times_min=2
-    settings.read_times_max=4
+    settings.read_times_min=9
+    settings.read_times_max=10
 
     if int(settings.amount_bursts)<=settings.max_bursts:
         correct=True
@@ -42,6 +42,11 @@ while correct!=True:
 
 #settings.save=input('Do you want to save the data?[Y or N]:')
 if not(disable):
+    settings.execute_evenly=True
+    settings.execute_random=True
+    settings.execute_poison=False
+    settings.execute_gausian=False
+    settings.execute_burst=False
     raw_signal_amplitudes=eg.sig_const(settings)
     output_memristor=eg.read_memristor(raw_signal_amplitudes,settings,'',settings.time_steps)
     print('Done')
