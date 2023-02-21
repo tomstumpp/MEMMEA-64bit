@@ -16,7 +16,7 @@ def convert_input(sig):
     data,sampling_rate,column_names=MCS.raw_import(sig)
     sig_data=pd.DataFrame()
     data_time=[]
-    name=sig.split('\\')[-1:]
+    name=str(sig.split('/')[-1:][0])
     time_steps = 1 / sampling_rate
     for time_points in range(0,len(data[1,:]+1)):
         data_time.append(time_points*time_steps)
@@ -25,10 +25,11 @@ def convert_input(sig):
     for names in column_names:
         sig_data[names]=data[n,:]
         n+=1
-    burst=bool(name[0].find("PTZ"))
+    if bool(name[0].find("PTZ"))==1:
+        burst=True
     return name,sig_data ,burst, time_steps
 
-def org_plot(name,sig,set):
+def org_plot(name,sig,set): #currently not in use!!!
     subplot_rows=math.ceil(len(sig.columns)/4)
     figstep, axsstep = plt.subplots(subplot_rows, 4)
     time=sig.iloc[:,0]
@@ -90,39 +91,51 @@ def sig_const(set):
 def write_memristor(sig,set):
     len_time=len(sig['Time'])
     channel_number=1
+    converted_channel_number=1
     column_amount=len(sig.columns)-1
+    sig_temp = pd.DataFrame(columns=['Time'])
+    sig_temp['Time'] = sig['Time']
+    # To determine which signal switched from above threshold to under threshold and therefore a "True" value is
+    # is written into the result array, a second array is built "f_channel_data_clone" with minus one entry from the
+    # original one at the start.
     while channel_number <=column_amount:
         channel_data=np.array(sig.iloc[:,channel_number]*1000)
-        threshold=set.threshold*1000
+        threshold_min=set.threshold_min*1000
         channel_data_clone=np.concatenate((channel_data[1:],[0]))
-        f_channel_data=channel_data > threshold
-        f_channel_data_clone=channel_data_clone > threshold
+        f_channel_data=channel_data > threshold_min
+        f_channel_data_clone=channel_data_clone > threshold_min
         f_channel_data_clone=~f_channel_data_clone
-        sig.iloc[:, channel_number]=pd.Series(np.array([x and y for x, y in zip(f_channel_data, f_channel_data_clone)]).astype(float))
-        print('Conversion done:'+str(channel_number)+'_of_'+str(column_amount))
+        converted_channel_data_temp=np.array([x and y for x, y in zip(f_channel_data, f_channel_data_clone)]).astype(float)
+        if np.sum(converted_channel_data_temp)>5 and np.sum(converted_channel_data_temp)<500:#len_time/(len_time/1000):
+            sig_temp[sig.columns[channel_number]]=pd.Series(converted_channel_data_temp)
+            converted_channel_number +=1
+            print('Conversion done:'+str(channel_number)+'_of_'+str(column_amount))
         channel_number+=1
-    return sig
+        if channel_number==column_amount and converted_channel_number==1:
+            sig_temp.assign(no_spikes=np.zeros((len_time,1)))
+    return sig_temp
 
 def read_memristor(sig,set,name,time_steps):
     len_time = len(sig['Time'])
-    max_t_plot=10
+    max_t_plot=300
     synthetic_plot=str(int(set.execute_evenly))+str(int(set.execute_random))+str(int(set.execute_gausian))+str(int(set.execute_poison))
     if set.execute_burst==False:
         base_name = str(name) + 'synth'+ synthetic_plot+'_duration_' + str(
             set.duration) + '_t_steps_' + str(set.time_steps) + '_max_r_time_' + str(
             set.read_times_max) + '_min-r_time_' + str(set.read_times_min) + '_t_splitting_'
-    base_name = str(name) +'synth'+ synthetic_plot+ '_syn_bursts_' + str(set.amount_bursts) + '_duration_' + str(
+    else:
+        base_name = str(name) +'_synth'+ synthetic_plot+ '_syn_bursts_' + str(set.amount_bursts) + '_duration_' + str(
         set.duration) + '_t_steps_' + str(set.time_steps) + '_max_r_time_' + str(
         set.read_times_max) + '_min-r_time_' + str(set.read_times_min) + '_t_splitting_'
     amount_plots = math.ceil((len_time * time_steps) / max_t_plot)
-    if len_time*time_steps>=max_t_plot:
+    if amount_plots>1:
         previous_index=0
         for n in np.arange(1,amount_plots+1):
             if n==amount_plots:
                 index_t_period = len_time-1
             else:
                 index_t_period=sig.index[sig['Time']>=n*max_t_plot][0]
-            name=base_name+'_'+str(n)+'_separate_plot'
+            name=base_name+str(n)+'_separate_plot'
             section_plot(sig.iloc[previous_index:index_t_period,:],set,name)
             previous_index=index_t_period+1
     else:

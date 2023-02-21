@@ -15,8 +15,8 @@ output_memristor=pd.DataFrame() #stores the read out of the memristor
 settings=Crew.generate_decider()
 user_signal=Crew.exp_signal()
 correct=False
-disable=False
-disable_real_data=True
+disable=True
+disable_real_data=False
 
 while correct!=True:
     #settings.amount_bursts=input('How high should be the number of APs in a Burst? '
@@ -26,8 +26,8 @@ while correct!=True:
     #    'What maximum amount of time divisions do you want?(An interval of larger than 7 is not allowed!!:'))
     #settings.threshold=float(input('Where should the threshold be placed?'))
     settings.amount_bursts=5
-    settings.read_times_min=9
-    settings.read_times_max=10
+    settings.read_times_min=39
+    settings.read_times_max=40
 
     if int(settings.amount_bursts)<=settings.max_bursts:
         correct=True
@@ -53,12 +53,11 @@ if not(disable):
 
 if not(disable_real_data):
     root=tk.Tk()
-    #tkinter_input=fd.askopenfilename()
-    tkinter_input='C:\\Users\\WichmannTim\\Documents\\GitHub\\MEMMEA\\Nov3_22699_20221125_6wellorg_10p5_PTZ1.raw'
+    tkinter_input=fd.askopenfilename()
+    #tkinter_input='C:\\Users\\WichmannTim\\Documents\\GitHub\\MEMMEA\\Nov3_22699_20221125_6wellorg_10p5_PTZ1.raw'
     root.destroy()
     if tkinter_input:
         user_signal.name,user_signal.dataarray,user_signal.epi_burst,user_signal.time_steps=eg.convert_input(tkinter_input)
     #    eg.org_plot(user_signal.name,user_signal.dataarray,settings)
-    #    eg.read_memristor(user_signal.dataarray,settings,str(user_signal.name)+'_raw_',user_signal.time_steps)
         output_memristor=eg.write_memristor(user_signal.dataarray,settings)
-        output_memristor=eg.read_memristor(output_memristor, settings, str(user_signal.name)+'_well_done_',user_signal.time_steps)
+        output_memristor=eg.read_memristor(output_memristor, settings, str(user_signal.name),user_signal.time_steps)
