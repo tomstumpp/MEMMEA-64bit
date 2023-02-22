@@ -72,9 +72,9 @@ def sig_const(set):
                                                     np.mean(signals['Poisson_Sig'].values) else 0 for n in range(0,len(signals['Poisson_Sig'].values))])
     if set.execute_burst==True:
         random_array=[]
-        if set.amount_burst>2:
-            zero_array=np.zeros(set.max_bursts-set.amount_burst)
-            ones_array=np.ones(set.amount_burst)
+        if set.amount_bursts>2:
+            zero_array=np.zeros(set.max_bursts-set.amount_bursts)
+            ones_array=np.ones(set.amount_bursts)
             even_array=np.tile(np.concatenate((zero_array,ones_array)),int(length/len(zero_array/2)))
             if len(even_array)<=length:
                 even_array=even_array.append(np.zeros(length-len(even_array)))
