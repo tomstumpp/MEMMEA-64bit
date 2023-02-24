@@ -15,19 +15,19 @@ output_memristor=pd.DataFrame() #stores the read out of the memristor
 settings=Crew.generate_decider()
 user_signal=Crew.exp_signal()
 correct=False
-disable_synthetic_data=False
-disable_real_data=True
+disable_synthetic_data=True
+disable_real_data=False
 
 while correct!=True:
-    settings.amount_bursts=input('How high should be the number of APs in a Burst? '
-                                'If 0 is entered no brust signal will be analysed!:')
-    settings.read_times_min = int(input('What minimum amount of time divisions do you want?:'))
-    settings.read_times_max = int(input(
-        'What maximum amount of time divisions do you want?(An interval of larger than 7 is not allowed!!:'))
-    settings.threshold=float(input('Where should the threshold be placed?'))
-    #settings.amount_bursts=5
-    #settings.read_times_min=9
-    #settings.read_times_max=10
+    #settings.amount_bursts=input('How high should be the number of APs in a Burst? '
+    #                            'If 0 is entered no brust signal will be analysed!:')
+    #settings.read_times_min = int(input('What minimum amount of time divisions do you want?:'))
+    #settings.read_times_max = int(input(
+    #    'What maximum amount of time divisions do you want?(An interval of larger than 7 is not allowed!!:'))
+    #settings.threshold=float(input('Where should the threshold be placed?'))
+    settings.amount_bursts=5
+    settings.read_times_min=5
+    settings.read_times_max=6
 
     if int(settings.amount_bursts)<=settings.max_bursts:
         correct=True
@@ -40,10 +40,10 @@ while correct!=True:
     else:
         raise Exception('The input was too big! Only values till 10 are allowed!')
 
-settings.save=input('Do you want to save the data?[Y or N]:')
+#settings.save=input('Do you want to save the data?[Y or N]:')
 if not(disable_synthetic_data):
-    settings.execute_evenly=True
-    settings.execute_random=True
+    settings.execute_evenly=False
+    settings.execute_random=False
     settings.execute_poison=False
     settings.execute_gausian=False
     settings.execute_burst=True

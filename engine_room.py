@@ -7,6 +7,7 @@ import math
 from matplotlib import pyplot as plt
 import os
 import MCS
+import matplotlib as mpl
 
 
 np.random.seed(19680801)
@@ -59,7 +60,7 @@ def sig_const(set):
     if set.execute_gausian==True:
         n,p= length,0.5
         x=np.arange(binom.ppf(0.01,n,p),binom.ppf(0.99,n,p))
-        signals=signals.assign(Gausian_Sig= np.fft.ifft(a=binom.pmf(x, n, p),n=length).real*10**5)
+        signals=signals.assign(Gausian_Sig= np.fft.ifft(a=binom.pmf(x, n, p),n=length).real*10**5)#irfft
         signals=signals.assign(Gausian_Sig=signals['Gausian_Sig'].values.astype(int))
         signals=signals.assign(Gausian_Sig =[1 if np.abs(signals['Gausian_Sig'].values[n])>=
                                                      np.mean(signals['Gausian_Sig'].values) else 0 for n in range(0,len(signals['Gausian_Sig'].values))])
@@ -113,6 +114,12 @@ def write_memristor(sig,set):
         channel_number+=1
         if channel_number==column_amount and converted_channel_number==1:
             sig_temp.assign(no_spikes=np.zeros((len_time,1)))
+    selected_electrodes=np.array((input('The electrodes ' + str(list(sig_temp.columns[1:].values)) +
+                   'were detected as having recorded spikes. '
+                    'Which ones would you like to analyse further?(enter the number of the electrodes divided by a comma)')))# continue here
+    if len(selected_electrodes)!=1:
+        selected_electrodes=np.array(int(selected_electrodes.split(',')))
+    sig_temp=sig_temp[:,selected_electrodes]
     return sig_temp
 
 def read_memristor(sig,set,name,time_steps):
@@ -136,12 +143,63 @@ def read_memristor(sig,set,name,time_steps):
             else:
                 index_t_period=sig.index[sig['Time']>=n*max_t_plot][0]
             name=base_name+str(n)+'_separate_plot'
-            section_plot(sig.iloc[previous_index:index_t_period,:],set,name)
+            section_plot(sig.iloc[previous_index:index_t_period,:],set,name,time_steps)
             previous_index=index_t_period+1
     else:
-        section_plot(sig,set,base_name)
+        section_plot(sig,set,base_name,time_steps)
 
-def section_plot(sig,set,name):
+def section_plot(sig,set,name,time_steps):
+    sig = sig.reset_index(drop=True)
+    len_time = len(sig['Time']) - 1
+    time_array = sig['Time']
+    read = pd.DataFrame(index=np.arange(0, len_time))
+    amount_columns=len(sig.columns)%2+1
+    fig, axs = plt.subplots((len(sig.columns)-1), amount_columns)
+    n=set.read_times_min
+    read_times = []
+    devision_point = math.ceil(len_time / n)
+    time_index = []
+    for time_sections in np.arange(1, n + 1):
+        time_index_temp = devision_point * time_sections - 1
+        time_index.append(time_index_temp)
+        if time_index_temp >= len_time:
+            read_times.append(time_array[len_time])
+        else:
+            read_times.append(time_array[time_index_temp])
+    read['Time_for_' + str(n)] = pd.Series(read_times)
+    pos_y=0
+    pos_x=0
+    for column_type in sig.columns[1:]:
+        if pos_y>len(sig.columns)-2:
+            pos_y=0
+            pos_x +=1
+
+        read_results = []
+        for time_sections in np.arange(0, n):
+            read_results.append(np.sum(sig[column_type].values[0:time_index[
+                                                                     time_sections] + 1]))  # values are called which are not even in the array in some cases but the correct results is generated without error
+        read[str(column_type) + '_measurment_' + str(n)] = pd.Series(read_results)
+
+        axs[pos_y, pos_x].set_ylabel('Spike_Occurence', fontsize=set.font['size'])
+        axs[pos_y, pos_x].set_yticks([])
+        axs[pos_y + 1, pos_x].set_ylabel('Counted_Spikes', fontsize=set.font['size'])
+        axs[pos_y + 1, pos_x].set_xlabel('Time[s]', fontsize=set.font['size'])
+        axs[pos_y+1,pos_x].plot(read_times, read_results,"b.-", label=column_type)
+        axs[pos_y,pos_x].set(xlim=(0, time_array[len_time]), xticks=np.arange(0, len_time/np.sqrt(len_time)))
+        axs[pos_y+1,pos_x].set(xlim=(0, time_array[len_time]), xticks=np.arange(0, len_time/np.sqrt(len_time)))
+        axs[pos_y,pos_x].eventplot(positions=(sig.index[sig[column_type].values==1])*time_steps, label=column_type, cmap=mpl.colormaps['Blues'])
+        axs[pos_y+1,pos_x].legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='xx-small')
+        pos_y += 2
+    name = name + str(n)
+    fig.suptitle(name, fontsize=set.font['size'])
+    type = '_raster_and_normal_plot_'
+    plt.tight_layout()
+    fig.show()
+    plt.tight_layout()
+    saveplot(name, read, set, fig, type)
+    return read
+
+def section_plot_bar_step(sig,set,name):
     sig=sig.reset_index(drop=True)
     len_time=len(sig['Time'])-1
     time_array=sig['Time']
@@ -178,8 +236,8 @@ def section_plot(sig,set,name):
             for time_sections in np.arange(0,n):
                 read_results.append(np.sum(sig[column_type].values[0:time_index[time_sections]+ 1])) # values are called which are not even in the array in some cases but the correct results is generated without error
             read[str(column_type)+'_measurment_'+str(n)]=pd.Series(read_results)
-            axs[s_number].bar(x=x_ticks+width*sig.columns.get_loc(column_type), height=read_results, width=width ,label=column_type)
-            axsstep[s_number].step(read_times,read_results,where='pre',label=column_type)
+            axs[s_number].bar(x=x_ticks+width*sig.columns.get_loc(column_type), height=read_results, width=width ,label=column_type, cmap=mpl.colormaps('Blues'))
+            axsstep[s_number].step(read_times,read_results,where='pre',label=column_type, cmap=mpl.colormaps('Blues'))
         #read_results=read.iloc[:len(read_times), ((n - 2) * (len(sig.columns[1:]) + 1)):]
         #axs[n-2].plot(read_times,read_results)
         axs[s_number].set_xticklabels(np.array(read_times).round(decimals=2))
