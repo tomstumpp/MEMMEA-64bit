@@ -1,4 +1,3 @@
-import pandas
 import pandas as pd
 import numpy as np
 from scipy.stats import binom
@@ -13,7 +12,7 @@ import matplotlib as mpl
 np.random.seed(19680801)
 rng=np.random.default_rng(12345)
 
-def convert_input(sig):
+def convert_input(sig): #reads in data from MCS .raw data
     data,sampling_rate,column_names=MCS.raw_import(sig)
     sig_data=pd.DataFrame()
     data_time=[]
@@ -26,9 +25,9 @@ def convert_input(sig):
     for names in column_names:
         sig_data[names]=data[n,:]
         n+=1
-    if bool(name[0].find("PTZ"))==1:
+    if bool(name[0].find("PTZ"))==1: 
         burst=True
-    return name,sig_data ,burst, time_steps
+    return name,sig_data ,burst, time_steps #name: (str) name of original data; sig_data: (pandas dataframe) with all data and time; burst: (bool) indicator if there might be spikes or not - not important right now but could be useful later, time_steps: (float) periodendauer 
 
 def org_plot(name,sig,set): #currently not in use!!!
     subplot_rows=math.ceil(len(sig.columns)/4)
@@ -40,12 +39,12 @@ def org_plot(name,sig,set): #currently not in use!!!
             axsstep[k][n].set_xlabel('Time')
             axsstep[k][n].step(sig.iloc[:,k*n+1], time, where='pre', label=str(sig.columns[k*n+1]))
     figstep.suptitle(name, fontdict=set.font)
-    saveplot(name,sig,set,figstep,'step')
+    saveplot(name,sig,set,figstep,'step') #constructed to plot a step function from the raw data
 
-def sig_const(set):
-    # the time signal should always be generated for 10s by default
+def sig_const(set): #creates all "synthetic" signals
+    # the time signal should always be generated after the pre-set in the Crew file
     length=math.ceil(set.duration/set.time_steps)
-    repeat_length=1
+    repeat_length=1 #distance between 0 and 1 @ evenly spaced signal
     signals=pd.DataFrame()
     signals = signals.assign(Time=np.arange(0, set.duration, set.time_steps))
     if set.execute_random==True:
@@ -59,7 +58,7 @@ def sig_const(set):
         signals=signals.assign(Even_Sp_Sig=array)
     if set.execute_gausian==True:
         n,p= length,0.5
-        x=np.arange(binom.ppf(0.01,n,p),binom.ppf(0.99,n,p))
+        x=np.arange(binom.ppf(0.01,n,p),binom.ppf(0.99,n,p)) #binom since then its discrete and not continous - shouldn't make a difference
         signals=signals.assign(Gausian_Sig= np.fft.ifft(a=binom.pmf(x, n, p),n=length).real*10**5)#irfft
         signals=signals.assign(Gausian_Sig=signals['Gausian_Sig'].values.astype(int))
         signals=signals.assign(Gausian_Sig =[1 if np.abs(signals['Gausian_Sig'].values[n])>=
@@ -67,7 +66,7 @@ def sig_const(set):
     if set.execute_poison== True:
         mu=0.6
         x = np.arange(poisson.ppf(0.01, mu), poisson.ppf(0.99, mu))
-        signals=signals.assign(Poisson_Sig=np.fft.ifft(a=poisson.pmf(x,mu),n=length).real*10**5)
+        signals=signals.assign(Poisson_Sig=np.fft.ifft(a=poisson.pmf(x,mu),n=length).real*10**5)#irfft
         signals=signals.assign(Poisson_Sig=signals['Poisson_Sig'].values.astype(int))
         signals=signals.assign(Poisson_Sig=[1 if np.abs(signals['Poisson_Sig'].values[n])>=
                                                     np.mean(signals['Poisson_Sig'].values) else 0 for n in range(0,len(signals['Poisson_Sig'].values))])
@@ -83,11 +82,11 @@ def sig_const(set):
                 even_array=even_array[:length]
             while len(random_array)<length:
                 zero_array=np.zeros(np.random.randint(set.max_bursts))
-                random_array=np.concatenate((random_array,zero_array,ones_array))  #continue here...
+                random_array=np.concatenate((random_array,zero_array,ones_array))
             random_array=random_array[:length]
             signals=signals.assign(Even_Burst=even_array)
             signals=signals.assign(Random_Burst=random_array)
-    return signals
+    return signals #returns synthetic signal dataframe with all "types" set to true
 
 def write_memristor(sig,set):
     len_time=len(sig['Time'])
@@ -123,11 +122,11 @@ def write_memristor(sig,set):
     else:
         selected_electrodes=[0,int(selected_electrodes)]
     sig_temp=sig_temp.iloc[:,selected_electrodes]
-    return sig_temp
+    return sig_temp #returns (dataframe) of all selected electrodes (starts @ 1) already thresholded - dataframe is only 0s and 1s 
 
-def read_memristor(sig,set,name,time_steps):
+def read_memristor(sig,set,name,time_steps): #function that creates plots from the sig data (from the write memristor function)
     len_time = len(sig['Time'])
-    max_t_plot=100
+    max_t_plot=100 #defines max s of a plot (just cut off to get individual plots from too long signals)
     synthetic_plot=str(int(set.execute_evenly))+str(int(set.execute_random))+str(int(set.execute_gausian))+str(int(set.execute_poison))
     if set.execute_burst==False:
         base_name = str(name) + 'synth'+ synthetic_plot+'_duration_' + str(
@@ -149,14 +148,14 @@ def read_memristor(sig,set,name,time_steps):
             section_plot(sig.iloc[previous_index:index_t_period,:],set,name,time_steps)
             previous_index=index_t_period+1
     else:
-        section_plot(sig,set,base_name,time_steps)
+        section_plot(sig,set,base_name,time_steps) #section_plot is the plotting function
 
 def section_plot(sig,set,name,time_steps):
     sig = sig.reset_index(drop=True)
     len_time = len(sig['Time']) - 1
     time_array = sig['Time']
     read = pd.DataFrame(index=np.arange(0, len_time))
-    amount_columns=len(sig.columns)%2+1
+    amount_columns=len(sig.columns)%2+1 # %=modolo
     amount_rows=len(sig.columns)-1
     if amount_rows==1:
         amount_rows=2
@@ -165,7 +164,7 @@ def section_plot(sig,set,name,time_steps):
     read_times = []
     devision_point = math.ceil(len_time / n)
     time_index = []
-    for time_sections in np.arange(1, n + 1):
+    for time_sections in np.arange(1, n + 1): #gets time points when the memristor is read out
         time_index_temp = devision_point * time_sections - 1
         time_index.append(time_index_temp)
         if time_index_temp >= len_time:
@@ -218,7 +217,7 @@ def section_plot(sig,set,name,time_steps):
     saveplot(name, read, set, fig, type)
     return read
 
-def section_plot_bar_step(sig,set,name):
+def section_plot_bar_step(sig,set,name): #should still work but decision was against it
     sig=sig.reset_index(drop=True)
     len_time=len(sig['Time'])-1
     time_array=sig['Time']

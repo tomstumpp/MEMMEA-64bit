@@ -58,6 +58,7 @@ if not(disable_real_data):
     root.destroy()
     if tkinter_input:
         user_signal.name,user_signal.dataarray,user_signal.epi_burst,user_signal.time_steps=eg.convert_input(tkinter_input)
-    #    eg.org_plot(user_signal.name,user_signal.dataarray,settings)
+    #    eg.org_plot(user_signal.name,user_signal.dataarray,settings)#not debugged - prob better to write it in here if that function is required - would be for plotting the MEA data
         output_memristor=eg.write_memristor(user_signal.dataarray,settings)
         output_memristor=eg.read_memristor(output_memristor, settings, str(user_signal.name),user_signal.time_steps)
+    print('Done')
