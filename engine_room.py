@@ -114,17 +114,20 @@ def write_memristor(sig,set):
         channel_number+=1
         if channel_number==column_amount and converted_channel_number==1:
             sig_temp.assign(no_spikes=np.zeros((len_time,1)))
-    selected_electrodes=np.array((input('The electrodes ' + str(list(sig_temp.columns[1:].values)) +
+    selected_electrodes=str((input('The electrodes ' + str(list(sig_temp.columns[1:].values)) +
                    'were detected as having recorded spikes. '
-                    'Which ones would you like to analyse further?(enter the number of the electrodes divided by a comma)')))# continue here
+                    'Which ones would you like to analyse further?(enter the number of the electrodes divided by a comma):')))
     if len(selected_electrodes)!=1:
-        selected_electrodes=np.array(int(selected_electrodes.split(',')))
-    sig_temp=sig_temp[:,selected_electrodes]
+        selected_electrodes=[int(x) for x in selected_electrodes.split(',')]
+        selected_electrodes.insert(0, 0)
+    else:
+        selected_electrodes=[0,int(selected_electrodes)]
+    sig_temp=sig_temp.iloc[:,selected_electrodes]
     return sig_temp
 
 def read_memristor(sig,set,name,time_steps):
     len_time = len(sig['Time'])
-    max_t_plot=300
+    max_t_plot=100
     synthetic_plot=str(int(set.execute_evenly))+str(int(set.execute_random))+str(int(set.execute_gausian))+str(int(set.execute_poison))
     if set.execute_burst==False:
         base_name = str(name) + 'synth'+ synthetic_plot+'_duration_' + str(
@@ -154,7 +157,10 @@ def section_plot(sig,set,name,time_steps):
     time_array = sig['Time']
     read = pd.DataFrame(index=np.arange(0, len_time))
     amount_columns=len(sig.columns)%2+1
-    fig, axs = plt.subplots((len(sig.columns)-1), amount_columns)
+    amount_rows=len(sig.columns)-1
+    if amount_rows==1:
+        amount_rows=2
+    fig, axs = plt.subplots(amount_rows, amount_columns)
     n=set.read_times_min
     read_times = []
     devision_point = math.ceil(len_time / n)
@@ -179,16 +185,29 @@ def section_plot(sig,set,name,time_steps):
             read_results.append(np.sum(sig[column_type].values[0:time_index[
                                                                      time_sections] + 1]))  # values are called which are not even in the array in some cases but the correct results is generated without error
         read[str(column_type) + '_measurment_' + str(n)] = pd.Series(read_results)
-
-        axs[pos_y, pos_x].set_ylabel('Spike_Occurence', fontsize=set.font['size'])
-        axs[pos_y, pos_x].set_yticks([])
-        axs[pos_y + 1, pos_x].set_ylabel('Counted_Spikes', fontsize=set.font['size'])
-        axs[pos_y + 1, pos_x].set_xlabel('Time[s]', fontsize=set.font['size'])
-        axs[pos_y+1,pos_x].plot(read_times, read_results,"b.-", label=column_type)
-        axs[pos_y,pos_x].set(xlim=(0, time_array[len_time]), xticks=np.arange(0, len_time/np.sqrt(len_time)))
-        axs[pos_y+1,pos_x].set(xlim=(0, time_array[len_time]), xticks=np.arange(0, len_time/np.sqrt(len_time)))
-        axs[pos_y,pos_x].eventplot(positions=(sig.index[sig[column_type].values==1])*time_steps, label=column_type, cmap=mpl.colormaps['Blues'])
-        axs[pos_y+1,pos_x].legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='xx-small')
+        x_limit=(read_times[0],read_times[-1])
+        #x_ticks=np.arange(0, len_time, len_time/100)
+        try:
+            axs[pos_y, pos_x].set_ylabel('Spike_Occurence', fontsize=set.font['size'])
+            axs[pos_y, pos_x].set_yticks([])
+            axs[pos_y + 1, pos_x].set_ylabel('Counted_Spikes', fontsize=set.font['size'])
+            axs[pos_y + 1, pos_x].set_xlabel('Time[s]', fontsize=set.font['size'])
+            axs[pos_y+1,pos_x].plot(read_times, read_results,"b.-", label=column_type, linewidth=0.5)
+            axs[pos_y,pos_x].set(xlim=x_limit)#, xticks=x_ticks)
+            axs[pos_y+1, pos_x].set(xlim=x_limit)
+            axs[pos_y,pos_x].eventplot(positions=(sig.index[sig[column_type].values==1])*time_steps, label=column_type,linewidths=0.1, cmap=mpl.colormaps['Blues'])
+            axs[pos_y+1,pos_x].legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='xx-small')
+        except:
+            axs[pos_y].set_ylabel('Spike_Occurence', fontsize=set.font['size'])
+            axs[pos_y].set_yticks([])
+            axs[pos_y + 1].set_ylabel('Counted_Spikes', fontsize=set.font['size'])
+            axs[pos_y + 1].set_xlabel('Time[s]', fontsize=set.font['size'])
+            axs[pos_y + 1].plot(read_times, read_results, "b.-", label=column_type, linewidth=1)
+            axs[pos_y].set(xlim=x_limit)#, xticks=read_times)
+            axs[pos_y + 1].set(xlim=x_limit)
+            axs[pos_y].eventplot(positions=(sig.index[sig[column_type].values == 1]) * time_steps+time_array[0],
+                                        label=column_type, linewidths=0.1, cmap=mpl.colormaps['Blues'])
+            axs[pos_y + 1].legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='xx-small')
         pos_y += 2
     name = name + str(n)
     fig.suptitle(name, fontsize=set.font['size'])
