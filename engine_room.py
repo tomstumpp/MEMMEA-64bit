@@ -195,7 +195,7 @@ def section_plot(sig,set,name,time_steps):
             axs[pos_y+1,pos_x].plot(read_times, read_results,"b.-", label=column_type, linewidth=0.5)
             axs[pos_y,pos_x].set(xlim=x_limit)#, xticks=x_ticks)
             axs[pos_y+1, pos_x].set(xlim=x_limit)
-            axs[pos_y,pos_x].eventplot(positions=(sig.index[sig[column_type].values==1])*time_steps, label=column_type,linewidths=0.1, cmap=mpl.colormaps['Blues'])
+            axs[pos_y,pos_x].eventplot(positions=(sig.index[sig[column_type].values==1])*time_steps+time_array[0], label=column_type,linewidths=0.1, cmap=mpl.colormaps['Blues'])
             axs[pos_y+1,pos_x].legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='xx-small')
         except:
             axs[pos_y].set_ylabel('Spike_Occurence', fontsize=set.font['size'])
