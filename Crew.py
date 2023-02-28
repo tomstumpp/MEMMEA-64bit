@@ -2,7 +2,7 @@ import pandas as pd
 
 
 class generate_decider:
-    def __init__(self,execute_random=True,execute_evenly=True,execute_gausian=True, execute_poison=True,execute_burst=True,duration=10,
+    def __init__(self,execute_random=True,execute_evenly=True,execute_gausian=True, execute_poison=True,execute_burst=True,duration=100,
                  time_steps=0.1,read_times_min=3,read_times_max=10,save='Y',amount_bursts=5,max_bursts=20,threshold_max=150,threshold_min=50,
                  font = {'size': 'x-small', 'weight': 'normal', 'color': 'black','verticalalignment': 'top','horizontalalignment': 'center'}):
         self.execute_random = execute_random  # all execution variables can be set to False independely so that the corresponding signal is not used
